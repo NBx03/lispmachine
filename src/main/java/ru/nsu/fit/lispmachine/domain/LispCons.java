@@ -1,10 +1,10 @@
-﻿package ru.nsu.fit.lispmachine.domain;
+package ru.nsu.fit.lispmachine.domain;
 
 import java.util.Iterator;
 import java.util.ArrayList;
 import java.util.List;
 
-public record LispCons(LispValue head, LispValue tail) implements LispValue {
+public record LispCons(LispValue head, LispValue tail) implements LispValue, Iterable<LispValue> {
 
     @Override
     public String toString() {
