@@ -46,15 +46,32 @@ public class Primitives {
 
         
 
-        
+        context.define("cons", new NativeFunction(args -> {
+            return new LispCons(args.get(0), args.get(1));
+        }));
 
-        
+        context.define("car", new NativeFunction(args -> {
+            if (args.get(0) instanceof LispCons c) return c.head();
+            return LispNil.INSTANCE;
+        }));
 
-        
+        context.define("cdr", new NativeFunction(args -> {
+            if (args.get(0) instanceof LispCons c) return c.tail();
+            return LispNil.INSTANCE;
+        }));
 
-        
+        context.define("<", new NativeFunction(args -> {
+            long v1 = ((LispNumber)args.get(0)).value();
+            long v2 = ((LispNumber)args.get(1)).value();
+            // Возвращаем T если меньше, иначе Nil (False)
+            return v1 < v2 ? new LispSymbol("T") : LispNil.INSTANCE;
+        }));
 
-        
+        context.define(">", new NativeFunction(args -> {
+            long v1 = ((LispNumber)args.get(0)).value();
+            long v2 = ((LispNumber)args.get(1)).value();
+            return v1 > v2 ? new LispSymbol("T") : LispNil.INSTANCE;
+        }));
 
         
     }
