@@ -40,6 +40,7 @@ public class Evaluator {
                     switch (sym.name()) {
                         case "quote": return handleQuote(cons);
                         case "define": return handleDefine(cons, context);
+                        case "defmacro": return handleDefMacro(cons, context);
                         case "set!": return handleSet(cons, context);
                         case "if": return handleIf(cons, context);
                         case "lambda": return handleLambda(cons, context);
@@ -72,6 +73,18 @@ public class Evaluator {
 
     // Прочие формы
 
+    private LispValue evalBody(LispValue bodyNodes, ExecutionContext context) {
+        LispValue result = LispNil.INSTANCE;
+        if (bodyNodes instanceof Iterable) {
+            for (LispValue expr : (Iterable<LispValue>) bodyNodes) {
+                result = eval(expr, context);
+            }
+        } else {
+            result = eval(bodyNodes, context);
+        }
+        return result;
+    }
+
     private LispValue handleQuote(LispCons cons) {
         return ((LispCons) cons.tail()).head();
     }
@@ -84,7 +97,24 @@ public class Evaluator {
         return name;
     }
 
-    private private LispValue handleSet(LispCons cons, ExecutionContext context) {
+    private LispValue handleDefMacro(LispCons cons, ExecutionContext context) {
+        List<LispValue> parts = toList(cons.tail());
+        LispSymbol name = (LispSymbol) parts.get(0);
+        List<String> params = extractParams(parts.get(1));
+        LispValue body = parts.get(2);
+        context.define(name.name(), new LispMacro(params, body));
+        return name;
+    }
+
+    private LispValue applyMacro(LispMacro macro, List<LispValue> args, ExecutionContext context) {
+        ExecutionContext macroCtx = new ExecutionContext(context);
+        for(int i=0; i<macro.params().size(); i++) {
+            macroCtx.define(macro.params().get(i), args.get(i));
+        }
+        return eval(macro.body(), macroCtx);
+    }
+
+    private LispValue handleSet(LispCons cons, ExecutionContext context) {
         List<LispValue> parts = toList(cons.tail());
         LispSymbol name = (LispSymbol) parts.get(0);
         LispValue res = eval(parts.get(1), context);
@@ -115,7 +145,37 @@ public class Evaluator {
         return lastResult;
     }
 
-    private private LispValue handleLambda(LispCons cons, ExecutionContext context) {
+    private private LispValue handleBinding(LispCons cons, ExecutionContext context) {
+        List<LispValue> parts = toList(cons.tail());
+        LispValue bindings = parts.get(0);
+        LispValue body = parts.get(1);
+        Map<String, LispValue> oldValues = new HashMap<>();
+        List<String> boundNames = new ArrayList<>();
+
+        if (bindings instanceof Iterable) {
+            for (LispValue pair : (Iterable<LispValue>) bindings) {
+                if (pair instanceof LispCons p) {
+                    String name = ((LispSymbol) p.head()).name();
+                    LispValue newVal = eval(((LispCons) p.tail()).head(), context);
+                    LispValue oldVal = context.lookup(name);
+                    if (oldVal != null) oldValues.put(name, oldVal);
+                    boundNames.add(name);
+                    context.define(name, newVal);
+                }
+            }
+        }
+        try {
+            return eval(body, context);
+        } finally {
+            for (String name : boundNames) {
+                if (oldValues.containsKey(name)) {
+                    context.define(name, oldValues.get(name));
+                }
+            }
+        }
+    }
+
+    private LispValue handleLambda(LispCons cons, ExecutionContext context) {
         List<LispValue> parts = toList(cons.tail());
         LispValue params = parts.get(0);
         LispValue body = ((LispCons)cons.tail()).tail();
