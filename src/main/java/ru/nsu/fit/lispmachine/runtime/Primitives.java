@@ -42,9 +42,22 @@ public class Primitives {
             return LispNil.INSTANCE;
         }));
 
-        
+        context.define("read", new NativeFunction(args -> {
+            Scanner scanner = new Scanner(System.in);
+            if (scanner.hasNextLine()) {
+                String line = scanner.nextLine();
+                return new Parser().parse(line);
+            }
+            return LispNil.INSTANCE;
+        }));
 
-        
+        context.define("list", new NativeFunction(args -> {
+            LispValue current = LispNil.INSTANCE;
+            for (int i = args.size() - 1; i >= 0; i--) {
+                current = new LispCons(args.get(i), current);
+            }
+            return current;
+        }));
 
         context.define("cons", new NativeFunction(args -> {
             return new LispCons(args.get(0), args.get(1));
