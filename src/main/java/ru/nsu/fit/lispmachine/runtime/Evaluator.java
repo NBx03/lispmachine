@@ -45,6 +45,7 @@ public class Evaluator {
                         case "if": return handleIf(cons, context);
                         case "lambda": return handleLambda(cons, context);
                         case "let": return handleLet(cons, context);
+                        case "binding": return handleBinding(cons, context);
                         case "while": return handleWhile(cons, context);
                         case "throw": return handleThrow(cons, context);
                         case "and": return handleAnd(cons, context);
