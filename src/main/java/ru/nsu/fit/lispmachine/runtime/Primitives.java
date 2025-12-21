@@ -1,4 +1,4 @@
-﻿package ru.nsu.fit.lispmachine.runtime;
+package ru.nsu.fit.lispmachine.runtime;
 
 import ru.nsu.fit.lispmachine.domain.*;
 import ru.nsu.fit.lispmachine.parser.Parser;
@@ -86,6 +86,34 @@ public class Primitives {
             return v1 > v2 ? new LispSymbol("T") : LispNil.INSTANCE;
         }));
 
-        
+        context.define("java-call", new NativeFunction(args -> {
+            try {
+                String className = getString(args.get(0));
+                String methodName = getString(args.get(1));
+
+                Class<?> clazz = Class.forName(className);
+                Object[] javaArgs = new Object[args.size() - 2];
+                Class<?>[] paramTypes = new Class<?>[args.size() - 2];
+
+                for(int i=2; i<args.size(); i++) {
+                    if (args.get(i) instanceof LispNumber n) {
+                        javaArgs[i-2] = n.value();
+                        paramTypes[i-2] = long.class;
+                    } else {
+                        javaArgs[i-2] = getString(args.get(i));
+                        paramTypes[i-2] = String.class;
+                    }
+                }
+
+                Method method = clazz.getMethod(methodName, paramTypes);
+                Object result = method.invoke(null, javaArgs);
+
+                if (result instanceof Number n) return new LispNumber(n.longValue());
+                return new LispString(result.toString());
+
+            } catch (Exception e) {
+                throw new RuntimeException("Java Interop Error: " + e.getMessage());
+            }
+        }));
     }
 }
