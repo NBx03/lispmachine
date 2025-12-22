@@ -1,4 +1,4 @@
-﻿package ru.nsu.fit.lispmachine.runtime;
+package ru.nsu.fit.lispmachine.runtime;
 
 import ru.nsu.fit.lispmachine.domain.*;
 import java.util.ArrayList;
@@ -48,6 +48,7 @@ public class Evaluator {
                         case "binding": return handleBinding(cons, context);
                         case "while": return handleWhile(cons, context);
                         case "throw": return handleThrow(cons, context);
+                        case "try": return handleTry(cons, context);
                         case "and": return handleAnd(cons, context);
                         case "or": return handleOr(cons, context);
                     }
@@ -146,7 +147,38 @@ public class Evaluator {
         return lastResult;
     }
 
-    private private LispValue handleBinding(LispCons cons, ExecutionContext context) {
+    private LispValue handleTry(LispCons cons, ExecutionContext context) {
+        List<LispValue> parts = toList(cons.tail());
+        LispValue tryBody = parts.get(0);
+        LispValue catchBlock = parts.size() > 1 ? parts.get(1) : null;
+        try {
+            return eval(tryBody, context);
+        } catch (RuntimeException e) {
+            if (catchBlock instanceof LispCons catchCons) {
+                List<LispValue> catchParts = toList(catchCons);
+                if (catchParts.size() == 3 && ((LispSymbol)catchParts.get(0)).name().equals("catch")) {
+                    String exVar = ((LispSymbol)catchParts.get(1)).name();
+                    LispValue handlerBody = catchParts.get(2);
+                    ExecutionContext catchCtx = new ExecutionContext(context);
+                    String msg = e.getCause() != null ? e.getCause().getMessage() : e.getMessage();
+
+                    if (msg != null && msg.startsWith("Lisp Error: ")) {
+                        msg = msg.substring(12);
+                    }
+
+                    if (msg != null && msg.startsWith("\"") && msg.endsWith("\"")) {
+                        msg = msg.substring(1, msg.length() - 1);
+                    }
+
+                    catchCtx.define(exVar, new LispString(msg == null ? "error" : msg));
+                    return eval(handlerBody, catchCtx);
+                }
+            }
+            throw e;
+        }
+    }
+
+    private LispValue handleBinding(LispCons cons, ExecutionContext context) {
         List<LispValue> parts = toList(cons.tail());
         LispValue bindings = parts.get(0);
         LispValue body = parts.get(1);
