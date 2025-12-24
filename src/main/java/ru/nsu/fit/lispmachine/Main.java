@@ -1,4 +1,4 @@
-﻿package ru.nsu.fit.lispmachine;
+package ru.nsu.fit.lispmachine;
 
 import ru.nsu.fit.lispmachine.domain.LispValue;
 import ru.nsu.fit.lispmachine.parser.Parser;
@@ -36,7 +36,24 @@ public class Main {
             balance += countBalance(line);
 
             // Если баланс 0 (или меньше) — значит выражение закончено, выполняем
-            // TODO: Реализовать баланс скобок
+            if (balance <= 0) {
+                String input = commandBuffer.toString().trim();
+                if (!input.isEmpty()) {
+                    try {
+                        LispValue expression = parser.parse(input);
+                        LispValue result = evaluator.eval(expression, context);
+                        System.out.println(result);
+                    } catch (Exception e) {
+                        System.out.println("Error: " + e.getMessage());
+                    }
+                }
+                // Сброс буфера
+                commandBuffer.setLength(0);
+                balance = 0;
+                System.out.print("> ");
+            } else {
+                // Если скобки не закрыты, ждем продолжения ввода
+                System.out.print("... ");
             }
         }
     }
